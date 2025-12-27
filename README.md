@@ -5,6 +5,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Java](https://img.shields.io/badge/Java-17-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.2-green)
+![img.png](img.png)
 
 ## ✨ 核心功能
 
@@ -81,10 +82,6 @@ java -jar target/GGMusic-0.0.1-SNAPSHOT.jar
 nohup java -Xmx256m -jar GGMusic-0.0.1-SNAPSHOT.jar > ggmusic.log 2>&1 &
 ```
 
-## 📝 待办事项
-- [ ] 支持歌词显示 (.lrc)
-- [ ] 支持专辑封面解析
-- [ ] 增加用户头像上传
-
+ 
 ## 📄 许可证
 本项目采用 [MIT](LICENSE) 许可证。
