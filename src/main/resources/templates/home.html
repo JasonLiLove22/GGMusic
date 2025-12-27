@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>GGMusic - Home</title>
+    <!-- Mobile Viewport Configuration -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- CSRF Token Configuration -->
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    
+    <style>
+        /* Base Styles (Desktop First) */
+        body { font-family: 'Comic Sans MS', cursive, sans-serif; background-color: #ffe6e6; margin: 0; padding: 20px; padding-bottom: 100px; height: 100vh; box-sizing: border-box; overflow: hidden; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: #ff6666; padding: 10px 20px; color: white; border-radius: 10px; height: 50px; flex-shrink: 0; }
+        
+        .main-content { display: flex; margin-top: 20px; gap: 20px; height: calc(100% - 160px); }
+        
+        .sidebar { width: 250px; background: white; padding: 15px; border-radius: 10px; overflow-y: auto; display: flex; flex-direction: column; }
+        
+        .content { flex: 1; background: white; padding: 15px; border-radius: 10px; position: relative; display: flex; flex-direction: column; }
+        
+        /* Player Bar Styles */
+        .player-bar { 
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 80px;
+            background: #333; color: white; padding: 0 20px; 
+            display: flex; align-items: center; justify-content: space-between; 
+            z-index: 100; box-sizing: border-box;
+        }
+        
+        .player-info { width: 200px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        
+        .player-controls { 
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        
+        .control-buttons { margin-bottom: 5px; }
+        
+        .progress-container { 
+            width: 80%; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #ccc;
+        }
+        
+        .progress-bar { flex: 1; cursor: pointer; }
+        
+        .player-settings { 
+            width: 350px; display: flex; align-items: center; justify-content: flex-end; gap: 15px; 
+            margin-right: 50px; 
+        }
+
+        .btn { background: #ff6666; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+        .btn-sm { padding: 2px 5px; font-size: 12px; }
+        .list-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .list-item:hover { background-color: #f9f9f9; }
+        
+        .gg-icon { width: 30px; vertical-align: middle; margin-right: 10px; }
+        
+        .site-logo { 
+            width: 40px; height: 40px; 
+            vertical-align: middle; margin-right: 10px; 
+            border-radius: 50%; 
+            background-color: white;
+            object-fit: cover;
+        }
+
+        .active-song { background-color: #ffe6e6; font-weight: bold; }
+        
+        .batch-actions { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; background: #f0f0f0; padding: 10px; border-radius: 5px; flex-shrink: 0; }
+        .checkbox-wrapper { margin-right: 10px; }
+
+        #song-list-container { flex: 1; overflow-y: auto; }
+        #pagination-controls { margin-top: 10px; display: flex; justify-content: center; gap: 5px; flex-shrink: 0; }
+        .page-btn { background: white; border: 1px solid #ff6666; color: #ff6666; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+        .page-btn.active { background: #ff6666; color: white; }
+        .page-btn:disabled { border-color: #ccc; color: #ccc; cursor: not-allowed; }
+
+        /* --- Mobile Responsive Styles --- */
+        @media (max-width: 768px) {
+            body { padding: 10px; padding-bottom: 140px; /* More space for taller player */ }
+            
+            .header { padding: 5px 10px; font-size: 14px; }
+            .site-logo { width: 30px; height: 30px; margin-right: 5px; }
+            .gg-icon { width: 20px; margin-right: 5px; }
+
+            .main-content { 
+                flex-direction: column; /* Stack vertically */
+                margin-top: 10px;
+                height: calc(100% - 180px); 
+            }
+
+            .sidebar { 
+                width: 100%; 
+                height: 150px; /* Limit height */
+                flex-shrink: 0;
+                padding: 10px;
+                box-sizing: border-box;
+            }
+
+            .content { 
+                width: 100%; 
+                padding: 10px;
+                box-sizing: border-box;
+            }
+
+            /* Mobile Player Bar */
+            .player-bar {
+                height: 130px; /* Taller */
+                flex-direction: column;
+                padding: 10px;
+                justify-content: space-around;
+            }
+
+            .player-info {
+                width: 100%;
+                text-align: center;
+                margin-bottom: 5px;
+            }
+
+            .player-controls {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+            
+            .progress-container { width: 100%; }
+
+            .player-settings {
+                width: 100%;
+                justify-content: center;
+                margin-right: 0;
+            }
+
+            /* Hide Volume on Mobile (Use hardware buttons) */
+            .volume-control-group { display: none !important; }
+            
+            /* Adjust batch panel for mobile */
+            .batch-actions { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div style="display: flex; align-items: center;">
+        <img src="https://upload.wikimedia.org/wikipedia/zh/6/6c/GG_Bond.png" class="gg-icon" onerror="this.style.display='none'">
+        
+        <img src="GGMusic_Logo.png"
+             alt="Logo" class="site-logo">
+        
+        <span style="font-size: 16px; font-weight: bold;">GGMusic</span>
+    </div>
+    <form th:action="@{/logout}" method="post">
+        <button type="submit" class="btn btn-sm">Logout</button>
+    </form>
+</div>
+
+<div class="main-content">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h3 style="margin-top:0;">Upload</h3>
+        <form th:action="@{/upload}" method="post" enctype="multipart/form-data" style="margin-bottom: 10px;">
+            <input type="file" name="files" accept=".mp3,.m4a,.wav" multiple required style="width: 100%; margin-bottom: 5px;">
+            <button type="submit" class="btn btn-sm">Upload</button>
+        </form>
+
+        <h3 style="margin-top:0;">Playlists</h3>
+        <form th:action="@{/playlist/create}" method="post" style="margin-bottom: 10px;">
+            <div style="display:flex; gap:5px;">
+                <input type="text" name="name" placeholder="New Playlist" required style="flex:1;">
+                <button type="submit" class="btn btn-sm">New</button>
+            </div>
+        </form>
+
+        <div style="flex: 1; overflow-y: auto;">
+            <div class="list-item" style="cursor: pointer;" onclick="loadAllMusic()">
+                <span>All Music</span>
+            </div>
+            <div th:each="playlist : ${playlists}">
+                <div class="list-item" style="cursor: pointer;" th:onclick="'loadPlaylist(' + ${playlist.id} + ')'">
+                    <span th:text="${playlist.name}">Name</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="content">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; margin-bottom: 10px;">
+            <h3 id="current-list-name" style="margin: 0;">All Music</h3>
+            <button class="btn btn-sm" onclick="toggleBatchMode()">Batch</button>
+        </div>
+
+        <div id="batch-panel" class="batch-actions" style="display: none;">
+            <span style="font-size: 12px;">Sel: <span id="selected-count">0</span></span>
+            <select id="batch-playlist-select" style="max-width: 120px;">
+                <option value="">To Playlist...</option>
+                <option th:each="p : ${playlists}" th:value="${p.id}" th:text="${p.name}"></option>
+            </select>
+            <button class="btn btn-sm" onclick="batchAddToPlaylist()">Add</button>
+            <button class="btn btn-sm" onclick="batchRemoveFromPlaylist()" id="batch-remove-btn" style="display: none; background-color: #ff4444;">Del</button>
+            <button class="btn btn-sm" onclick="batchDeleteMusic()" id="batch-delete-btn" style="display: inline-block; background-color: #cc0000;">Delete All</button>
+        </div>
+
+        <div id="song-list-container">
+            <div id="song-list">
+                <!-- Songs will be rendered here -->
+            </div>
+        </div>
+        
+        <div id="pagination-controls">
+            <!-- Pagination buttons will be rendered here -->
+        </div>
+    </div>
+</div>
+
+<!-- Player Bar -->
+<div class="player-bar">
+    <!-- Info -->
+    <div class="player-info">
+        <span id="player-title" style="font-weight: bold;">Select a song</span><br>
+        <small id="player-artist"></small>
+    </div>
+    
+    <!-- Controls -->
+    <div class="player-controls">
+        <div class="control-buttons">
+            <button class="btn" onclick="prevSong()">|&lt;</button>
+            <button class="btn" onclick="togglePlay()" id="play-pause-btn">Play</button>
+            <button class="btn" onclick="nextSong()">&gt;|</button>
+        </div>
+        <div class="progress-container">
+            <span id="current-time">0:00</span>
+            <input type="range" id="progress-bar" class="progress-bar" value="0" min="0" max="100" step="0.1" oninput="seekSong(this.value)">
+            <span id="duration">0:00</span>
+        </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="player-settings">
+        <select id="loop-mode" onchange="updateLoopMode()" style="padding: 5px; border-radius: 5px;">
+            <option value="list">List Loop</option>
+            <option value="single">Single Loop</option>
+            <option value="random">Random</option>
+        </select>
+        <div class="volume-control-group" style="display: flex; align-items: center;">
+            <span style="margin-right: 5px;">Vol:</span>
+            <input type="range" min="0" max="1" step="0.05" value="0.4" oninput="setVolume(this.value)" style="width: 100px;">
+        </div>
+    </div>
+    
+    <audio id="audio-player" onended="handleSongEnd()" ontimeupdate="updateProgress()" onloadedmetadata="setupProgress()"></audio>
+</div>
+
+<script th:inline="javascript">
+    let allSongsBackup = []; 
+    let currentPlaylist = []; 
+    let currentIndex = -1;
+    let loopMode = 'list'; 
+    let currentPlaylistId = null; 
+    let batchMode = false;
+    
+    let currentPage = 1;
+    const itemsPerPage = 11;
+    let selectedSongIds = new Set(); 
+
+    const audio = document.getElementById('audio-player');
+    const progressBar = document.getElementById('progress-bar');
+    const currentTimeEl = document.getElementById('current-time');
+    const durationEl = document.getElementById('duration');
+    
+    audio.volume = 0.4;
+
+    /*[+
+    const allMusic = [[${musics}]];
+    +]*/
+    
+    allSongsBackup = allMusic.map(m => ({
+        id: m.id,
+        title: m.title,
+        artist: m.artist,
+        fileName: m.fileName
+    }));
+    
+    currentPlaylist = [...allSongsBackup];
+    renderSongList();
+
+    function loadAllMusic() {
+        document.getElementById('current-list-name').innerText = "All Music";
+        currentPlaylistId = null;
+        currentPlaylist = [...allSongsBackup];
+        currentPage = 1;
+        selectedSongIds.clear(); 
+        renderSongList();
+        document.getElementById('batch-remove-btn').style.display = 'none';
+        document.getElementById('batch-delete-btn').style.display = 'inline-block';
+    }
+
+    function loadPlaylist(id) {
+        currentPlaylistId = id;
+        fetch('/playlist/' + id)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('current-list-name').innerText = data.name;
+                currentPlaylist = data.musics.map(m => ({
+                    id: m.id,
+                    title: m.title,
+                    artist: m.artist,
+                    fileName: m.fileName
+                }));
+                currentPage = 1;
+                selectedSongIds.clear(); 
+                renderSongList();
+                document.getElementById('batch-remove-btn').style.display = 'inline-block';
+                document.getElementById('batch-delete-btn').style.display = 'none';
+            });
+    }
+
+    function renderSongList() {
+        const container = document.getElementById('song-list');
+        container.innerHTML = '';
+        
+        if (currentPlaylist.length === 0) {
+            container.innerHTML = '<div style="padding:10px; color:#666;">No songs in this playlist.</div>';
+            renderPaginationControls();
+            return;
+        }
+
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = Math.min(startIndex + itemsPerPage, currentPlaylist.length);
+        const songsToShow = currentPlaylist.slice(startIndex, endIndex);
+
+        songsToShow.forEach((song) => {
+            const originalIndex = currentPlaylist.findIndex(s => s.id === song.id);
+
+            const div = document.createElement('div');
+            div.className = 'list-item song-item';
+            div.setAttribute('data-id', song.id);
+            
+            let checkboxHtml = '';
+            if (batchMode) {
+                const isChecked = selectedSongIds.has(song.id.toString()) ? 'checked' : '';
+                checkboxHtml = `<div class="checkbox-wrapper"><input type="checkbox" class="song-checkbox" value="${song.id}" ${isChecked} onchange="toggleSelection(this)"></div>`;
+            }
+
+            div.innerHTML = `
+                <div style="display:flex; align-items:center; overflow:hidden;">
+                    ${checkboxHtml}
+                    <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        <span>${song.title}</span> - <small>${song.artist}</small>
+                    </div>
+                </div>
+                <div>
+                    <button class="btn btn-sm" onclick="playIndex(${originalIndex})">Play</button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+        
+        if (currentIndex !== -1) {
+             const activeSong = currentPlaylist[currentIndex];
+             const activeEl = container.querySelector(`.song-item[data-id="${activeSong.id}"]`);
+             if (activeEl) activeEl.classList.add('active-song');
+        }
+
+        updateSelectedCount();
+        renderPaginationControls();
+    }
+
+    function renderPaginationControls() {
+        const container = document.getElementById('pagination-controls');
+        container.innerHTML = '';
+        
+        const totalPages = Math.ceil(currentPlaylist.length / itemsPerPage);
+        if (totalPages <= 1) return;
+
+        const prevBtn = document.createElement('button');
+        prevBtn.innerText = "<";
+        prevBtn.className = 'page-btn';
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.onclick = () => changePage(currentPage - 1);
+        container.appendChild(prevBtn);
+
+        for (let i = 1; i <= totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.innerText = i;
+            btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+            btn.onclick = () => changePage(i);
+            container.appendChild(btn);
+        }
+
+        const nextBtn = document.createElement('button');
+        nextBtn.innerText = ">";
+        nextBtn.className = 'page-btn';
+        nextBtn.disabled = currentPage === totalPages;
+        nextBtn.onclick = () => changePage(currentPage + 1);
+        container.appendChild(nextBtn);
+    }
+
+    function changePage(page) {
+        const totalPages = Math.ceil(currentPlaylist.length / itemsPerPage);
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        renderSongList();
+    }
+
+    function toggleBatchMode() {
+        batchMode = !batchMode;
+        document.getElementById('batch-panel').style.display = batchMode ? 'flex' : 'none';
+        renderSongList();
+    }
+
+    function toggleSelection(checkbox) {
+        if (checkbox.checked) {
+            selectedSongIds.add(checkbox.value);
+        } else {
+            selectedSongIds.delete(checkbox.value);
+        }
+        updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+        document.getElementById('selected-count').innerText = selectedSongIds.size;
+    }
+
+    function getCsrfHeaders() {
+        const token = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+        const header = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+        return { [header]: token };
+    }
+
+    function batchAddToPlaylist() {
+        const playlistId = document.getElementById('batch-playlist-select').value;
+        const musicIds = Array.from(selectedSongIds);
+
+        if (!playlistId) {
+            alert("Please select a target playlist.");
+            return;
+        }
+        if (musicIds.length === 0) {
+            alert("Please select at least one song.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('playlistId', playlistId);
+        formData.append('musicIds', musicIds.join(','));
+
+        fetch('/playlist/batch-add', {
+            method: 'POST',
+            headers: getCsrfHeaders(),
+            body: formData
+        }).then(response => {
+            if (response.ok) {
+                alert("Added successfully!");
+                selectedSongIds.clear();
+                renderSongList();
+            } else {
+                alert("Failed to add.");
+            }
+        });
+    }
+
+    function batchRemoveFromPlaylist() {
+        if (!currentPlaylistId) {
+            alert("Cannot remove from 'All Music'.");
+            return;
+        }
+        
+        const musicIds = Array.from(selectedSongIds);
+        if (musicIds.length === 0) {
+            alert("Please select at least one song.");
+            return;
+        }
+
+        if (!confirm("Are you sure you want to remove these songs from the playlist?")) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('playlistId', currentPlaylistId);
+        formData.append('musicIds', musicIds.join(','));
+
+        fetch('/playlist/batch-remove', {
+            method: 'POST',
+            headers: getCsrfHeaders(),
+            body: formData
+        }).then(response => {
+            if (response.ok) {
+                alert("Removed successfully!");
+                loadPlaylist(currentPlaylistId); 
+            } else {
+                alert("Failed to remove.");
+            }
+        });
+    }
+
+    function batchDeleteMusic() {
+        const musicIds = Array.from(selectedSongIds);
+        if (musicIds.length === 0) {
+            alert("Please select at least one song.");
+            return;
+        }
+
+        if (!confirm("WARNING: This will permanently delete the selected songs from the server and all playlists. Are you sure?")) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('musicIds', musicIds.join(','));
+
+        fetch('/music/batch-delete', {
+            method: 'POST',
+            headers: getCsrfHeaders(),
+            body: formData
+        }).then(response => {
+            if (response.ok) {
+                alert("Deleted successfully!");
+                window.location.reload(); // Reload page to refresh all data
+            } else {
+                alert("Failed to delete.");
+            }
+        });
+    }
+
+    function playIndex(index) {
+        if (index < 0 || index >= currentPlaylist.length) return;
+        currentIndex = index;
+        const song = currentPlaylist[index];
+        
+        document.getElementById('player-title').innerText = song.title;
+        document.getElementById('player-artist').innerText = song.artist;
+        
+        audio.src = '/music/file/' + song.fileName;
+        audio.play();
+        document.getElementById('play-pause-btn').innerText = "Pause";
+        
+        renderSongList();
+    }
+
+    function togglePlay() {
+        if (audio.paused) {
+            if (audio.src) {
+                audio.play();
+                document.getElementById('play-pause-btn').innerText = "Pause";
+            }
+        } else {
+            audio.pause();
+            document.getElementById('play-pause-btn').innerText = "Play";
+        }
+    }
+
+    function prevSong() {
+        if (currentPlaylist.length === 0) return;
+        if (loopMode === 'random') {
+            playIndex(Math.floor(Math.random() * currentPlaylist.length));
+        } else {
+            let newIndex = currentIndex - 1;
+            if (newIndex < 0) newIndex = currentPlaylist.length - 1;
+            playIndex(newIndex);
+        }
+    }
+
+    function nextSong() {
+        if (currentPlaylist.length === 0) return;
+        if (loopMode === 'random') {
+            playIndex(Math.floor(Math.random() * currentPlaylist.length));
+        } else {
+            let newIndex = currentIndex + 1;
+            if (newIndex >= currentPlaylist.length) newIndex = 0;
+            playIndex(newIndex);
+        }
+    }
+
+    function handleSongEnd() {
+        if (loopMode === 'single') {
+            audio.currentTime = 0;
+            audio.play();
+        } else {
+            nextSong();
+        }
+    }
+
+    function updateLoopMode() {
+        loopMode = document.getElementById('loop-mode').value;
+    }
+
+    function setVolume(val) {
+        audio.volume = val;
+    }
+    
+    function formatTime(seconds) {
+        if (!seconds) return "0:00";
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return mins + ":" + (secs < 10 ? "0" : "") + secs;
+    }
+    
+    function setupProgress() {
+        progressBar.max = audio.duration;
+        durationEl.innerText = formatTime(audio.duration);
+    }
+    
+    function updateProgress() {
+        progressBar.value = audio.currentTime;
+        currentTimeEl.innerText = formatTime(audio.currentTime);
+    }
+    
+    function seekSong(val) {
+        audio.currentTime = val;
+    }
+</script>
+
+</body>
+</html>
